@@ -220,6 +220,23 @@ export default function EquipmentForm({ editingModel, onClose }: EquipmentFormPr
   // ─── Save ───────────────────────────────────────────────────
   const save = async () => {
     setError('');
+    const ar = lang === 'ar';
+    // Name, category and brand are required by the database; catch them here with a clear message.
+    if (!model.name_ar.trim() && !model.name_en.trim()) {
+      setError(ar ? 'اكتب اسم المعدة في تبويب «المعلومات الأساسية».' : 'Enter the equipment name in the "Basic Info" tab.');
+      setActiveTab('basic');
+      return;
+    }
+    if (!categories.some((c) => c.id === model.category_id)) {
+      setError(ar ? 'اختر الفئة في تبويب «المعلومات الأساسية» (أو أضف فئة جديدة).' : 'Choose a category in the "Basic Info" tab (or add a new one).');
+      setActiveTab('basic');
+      return;
+    }
+    if (!brands.some((b) => b.id === model.brand_id)) {
+      setError(ar ? 'اختر الماركة في تبويب «المعلومات الأساسية» (أو أضف ماركة جديدة).' : 'Choose a brand in the "Basic Info" tab (or add a new one).');
+      setActiveTab('basic');
+      return;
+    }
     // Customers pick a size before requesting, so at least one named size is required.
     const sizes = modelVariants
       .map((v) => {
@@ -253,7 +270,13 @@ export default function EquipmentForm({ editingModel, onClose }: EquipmentFormPr
       }
       onClose();
     } catch (e: any) {
-      setError(e?.message || 'Failed to save');
+      console.error('Saving the equipment failed', e);
+      const msg: string = e?.message || '';
+      setError(
+        /brand_id_fkey/.test(msg) ? (lang === 'ar' ? 'الماركة المختارة غير موجودة. اختر ماركة أخرى أو أضفها من جديد.' : 'The selected brand no longer exists. Choose another brand or add it again.')
+        : /category_id_fkey/.test(msg) ? (lang === 'ar' ? 'الفئة المختارة غير موجودة. اختر فئة أخرى أو أضفها من جديد.' : 'The selected category no longer exists. Choose another category or add it again.')
+        : msg || (lang === 'ar' ? 'تعذر الحفظ' : 'Failed to save'),
+      );
     } finally {
       setSaving(false);
     }
